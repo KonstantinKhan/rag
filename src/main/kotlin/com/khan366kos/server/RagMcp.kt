@@ -11,6 +11,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import kotlin.random.Random
 
 fun configureServer(queryService: QueryService): Server {
     val server = Server(
@@ -34,6 +35,7 @@ fun configureServer(queryService: QueryService): Server {
 
         val arguments = callToolRequest.arguments
         val query = arguments?.get("query")?.toString() ?: ""
+        val useReranker = arguments?.get("use_reranker")?.toString()?.toBoolean() ?: false
 
         val chunkCount = DatabaseService.getChunkCount()
         if (chunkCount == 0L) {
@@ -44,15 +46,16 @@ fun configureServer(queryService: QueryService): Server {
 
         println("Database contains $chunkCount chunks from ${DatabaseService.getDocumentCount()} documents")
 
-        val results = queryService.search(query)
+        val results = queryService.search(query, if (useReranker) 1 else 5, useReranker)
 
         if (results.isEmpty()) {
             println("No results found.")
             content = content.append("No results found.")
-        }
-
-        results.forEachIndexed { index, result ->
-            content.append(result.formatResult(index + 1))
+        } else if (useReranker) {
+            content.append(results.first().chunk.chunkText.trim())
+        } else {
+            val random = (0..<results.size).random()
+            content.append(results[random].chunk.chunkText.trim())
         }
 
         CallToolResult(

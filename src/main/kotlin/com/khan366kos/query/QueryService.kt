@@ -16,10 +16,11 @@ class QueryService(private val ollamaClient: OllamaClient) {
      * Search for chunks similar to the query
      * @param query The search query text
      * @param topK Number of top results to return (default: 5)
+     * @param useReranker Whether to use reranking and return only the best match (default: false)
      * @return List of search results with similarity scores
      */
-    suspend fun search(query: String, topK: Int = 5): List<SearchResult> {
-        logger.info("Searching for: $query")
+    suspend fun search(query: String, topK: Int = 5, useReranker: Boolean = false): List<SearchResult> {
+        logger.info("Searching for: $query, useReranker: $useReranker")
 
         // Generate embedding for the query
         val queryEmbedding = ollamaClient.generateEmbedding(query)
@@ -45,10 +46,16 @@ class QueryService(private val ollamaClient: OllamaClient) {
             )
         }
 
-        // Sort by similarity (highest first) and take top K
-        return results
-            .sortedByDescending { it.similarity }
-            .take(topK)
+        // Sort by similarity (highest first)
+        val sortedResults = results.sortedByDescending { it.similarity }
+
+        // If reranking is enabled, return only the top result
+        return if (useReranker) {
+            listOf(sortedResults.firstOrNull() ?: return emptyList())
+        } else {
+            // Otherwise, return top K results as before
+            sortedResults.take(topK)
+        }
     }
 }
 
