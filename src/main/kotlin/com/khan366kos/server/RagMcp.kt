@@ -53,6 +53,7 @@ fun configureServer(queryService: QueryService): Server {
             content = content.append("No results found.")
         } else if (useReranker) {
             content.append(results.first().chunk.chunkText.trim())
+            content.append("File: ${results.first().chunk.fileName.trim()}")
         } else {
             val random = (0..<results.size).random()
             content.append(results[random].chunk.chunkText.trim())
