@@ -6,8 +6,6 @@ import com.khan366kos.query.QueryService
 import io.ktor.server.application.Application
 import io.ktor.server.application.log
 import io.ktor.server.netty.EngineMain
-import jdk.jfr.internal.Logger.log
-
 
 fun main(args: Array<String>) {
     EngineMain.main(args)
@@ -19,7 +17,7 @@ fun Application.module() {
     DatabaseService.initialize(dbPath)
     log.info("Database initialized at: $dbPath")
 
-    val ollamaClient = OllamaClient()
+    val ollamaClient = OllamaClient(expectedEmbeddingSize = 768) // Default for embeddinggemma model
     val queryService = QueryService(ollamaClient)
 
     configureSerialization()

@@ -20,10 +20,12 @@ import java.nio.ByteOrder
  * Client for interacting with Ollama embeddings API
  * @param baseUrl Base URL for Ollama API (default: http://localhost:11434)
  * @param model Model name to use for embeddings (default: nomic-embed-text)
+ * @param expectedEmbeddingSize Expected size of embeddings (default: 768 for embeddinggemma)
  */
 class OllamaClient(
     private val baseUrl: String = "http://localhost:11434",
-    private val model: String = "nomic-embed-text"
+    private val model: String = "embeddinggemma",
+    private val expectedEmbeddingSize: Int = 768
 ) {
     private val logger = LoggerFactory.getLogger(OllamaClient::class.java)
 
@@ -55,6 +57,12 @@ class OllamaClient(
                 }
 
                 val embeddingResponse = response.body<EmbeddingResponse>()
+
+                // Validate embedding size
+                if (embeddingResponse.embedding.size != expectedEmbeddingSize) {
+                    logger.warn("Embedding size mismatch: expected $expectedEmbeddingSize, got ${embeddingResponse.embedding.size}. This may cause issues during similarity search.")
+                }
+
                 return floatListToByteArray(embeddingResponse.embedding)
 
             } catch (e: Exception) {

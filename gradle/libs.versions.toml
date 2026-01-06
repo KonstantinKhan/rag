@@ -25,6 +25,8 @@ ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor"}
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor"}
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite"}
 
+ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor"}
+
 mcp-server = { module = "io.modelcontextprotocol:kotlin-sdk", version.ref = "mcp"}
 
 [plugins]

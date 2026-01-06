@@ -4,6 +4,7 @@ import com.khan366kos.chunker.TextChunker
 import com.khan366kos.database.DatabaseService
 import com.khan366kos.ollama.OllamaClient
 import com.khan366kos.query.QueryService
+import com.khan366kos.query.RerankerService
 import com.khan366kos.scanner.FileScanner
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -25,14 +26,16 @@ fun main() = runBlocking {
         exitProcess(1)
     }
 
-    // Main command loop
-    val ollamaClient = OllamaClient()
+    // Initialize services
+    val ollamaClient = OllamaClient(expectedEmbeddingSize = 768) // Default for embeddinggemma model
+    val rerankerService = RerankerService()
+
     try {
         while (true) {
             showMainMenu()
             when (readLine()?.trim()?.lowercase()) {
                 "1", "embeddings", "e" -> runEmbeddings(ollamaClient)
-                "2", "query", "q" -> runQuery(ollamaClient)
+                "2", "query", "q" -> runQuery(ollamaClient, rerankerService)
                 "3", "stats", "s" -> showStats()
                 "4", "exit", "x" -> {
                     println("\nExiting... Goodbye!")
@@ -43,6 +46,7 @@ fun main() = runBlocking {
         }
     } finally {
         ollamaClient.close()
+        rerankerService.close()
         logger.info("Application closed")
     }
 }
@@ -155,7 +159,7 @@ suspend fun runEmbeddings(ollamaClient: OllamaClient) {
     }
 }
 
-suspend fun runQuery(ollamaClient: OllamaClient) {
+suspend fun runQuery(ollamaClient: OllamaClient, rerankerService: RerankerService) {
     println("\n=== Query Mode ===")
 
     // Check if database has data
@@ -184,12 +188,23 @@ suspend fun runQuery(ollamaClient: OllamaClient) {
     println("How many results? (default: 5)")
     val topK = readLine()?.trim()?.toIntOrNull() ?: 5
 
+    // Ask if user wants to use reranking
+    var useReranking = false
+    if (rerankerService != null) {
+        println("Use reranking? (y/N): ")
+        val useRerankInput = readLine()?.trim()?.lowercase()
+        useReranking = useRerankInput in listOf("y", "yes")
+    }
+
     println("\nSearching for: \"$query\"")
+    if (useReranking) {
+        println("Using reranking...")
+    }
     println("Please wait...\n")
 
     try {
-        val queryService = QueryService(ollamaClient)
-        val results = queryService.search(query, topK)
+        val queryService = QueryService(ollamaClient, rerankerService)
+        val results = queryService.search(query, topK, useReranking)
 
         if (results.isEmpty()) {
             println("No results found.")
@@ -197,7 +212,12 @@ suspend fun runQuery(ollamaClient: OllamaClient) {
         }
 
         println("\n" + "═".repeat(80))
-        println("  Found ${results.size} results")
+        if (useReranking) {
+            println("  Found ${results.size} results (after re-ranking)")
+            println("  Re-ranking was applied to improve result relevance")
+        } else {
+            println("  Found ${results.size} results")
+        }
         println("═".repeat(80))
 
         results.forEachIndexed { index, result ->
