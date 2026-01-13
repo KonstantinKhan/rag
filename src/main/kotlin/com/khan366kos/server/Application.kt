@@ -12,12 +12,11 @@ fun main(args: Array<String>) {
 }
 
 fun Application.module() {
-    // Initialize database connection
     val dbPath = "./rag_database.db"
     DatabaseService.initialize(dbPath)
     log.info("Database initialized at: $dbPath")
 
-    val ollamaClient = OllamaClient(expectedEmbeddingSize = 768) // Default for embeddinggemma model
+    val ollamaClient = OllamaClient(expectedEmbeddingSize = 768)
     val queryService = QueryService(ollamaClient)
 
     configureSerialization()
